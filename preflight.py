@@ -320,8 +320,13 @@ def check_android_target_sdk():
     cap_android = re.search(r'"@capacitor/android"\s*:\s*"[^0-9]*([0-9]+)', pkg)
     if not declared.strip() and not cap_android:
         return  # no Android project to judge
+    # Ignore ternary fallbacks such as Capacitor's generated
+    # `targetSdkVersion project.hasProperty('targetSdkVersion') ? ... : 34`;
+    # they only apply when the root project sets nothing, and the root value
+    # is matched on its own line.
+    lines = [l for l in declared.splitlines() if "hasProperty(" not in l and "?" not in l]
     found = [int(v) for v in re.findall(
-        r"targetSdk(?:Version)?\s*[=:]?\s*\(?\s*[\"']?([0-9]{2})", declared)]
+        r"targetSdk(?:Version)?\s*[=:]?\s*\(?\s*[\"']?([0-9]{2})", "\n".join(lines))]
     if found:
         lowest = min(found)
         if lowest < MIN_ANDROID_TARGET_SDK:
